@@ -7,6 +7,7 @@ import superjson from "superjson";
 import App from "./App";
 import { startLogin } from "./const";
 import "./index.css";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
@@ -43,10 +44,6 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       headers() {
-        // Preview auto-login fallback: when the browser blocks iframe cookies
-        // (Safari ITP / private browsing / WebView), the runtime mirrors the
-        // session into sessionStorage so we can forward it as a Bearer token.
-        // The regular OAuth cookie flow keeps working and takes priority server-side.
         try {
           const raw = sessionStorage.getItem("manus-cookie");
           if (raw) {
@@ -72,10 +69,23 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-createRoot(document.getElementById("root")!).render(
-  <trpc.Provider client={trpcClient} queryClient={queryClient}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </trpc.Provider>
-);
+// ✅ Analytics loader
+function Root() {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.defer = true;
+    script.src = `${import.meta.env.VITE_ANALYTICS_ENDPOINT}/umami`;
+    script.setAttribute("data-website-id", import.meta.env.VITE_ANALYTICS_WEBSITE_ID);
+    document.body.appendChild(script);
+  }, []);
+
+  return (
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </trpc.Provider>
+  );
+}
+
+createRoot(document.getElementById("root")!).render(<Root />);
